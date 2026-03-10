@@ -9,8 +9,25 @@
       { id: "u3", role: "aluno", name: "Carlos Silva", email: "carlos@school.local", password: "aluno123", turmaIdSeed: "t1" }
     ],
     turmas: [
-      { id: "t1", nome: "1ºA", ano: 2025, turno: "Manhã" },
-      { id: "t2", nome: "2ºB", ano: 2025, turno: "Tarde" }
+      { id: "t1", nome: "1ºA", ano: 2025, turno: "Manhã", horario: [
+        { dia: 1, inicio: '07:30', fim: '08:15', disciplinaId: 'd1' },
+        { dia: 1, inicio: '08:15', fim: '09:00', disciplinaId: 'd2' },
+        { dia: 2, inicio: '07:30', fim: '08:15', disciplinaId: 'd3' },
+        { dia: 2, inicio: '08:15', fim: '09:00', disciplinaId: 'd1' },
+        { dia: 3, inicio: '07:30', fim: '08:15', disciplinaId: 'd2' },
+        { dia: 3, inicio: '08:15', fim: '09:00', disciplinaId: 'd3' },
+        { dia: 4, inicio: '07:30', fim: '08:15', disciplinaId: 'd1' },
+        { dia: 4, inicio: '08:15', fim: '09:00', disciplinaId: 'd2' },
+        { dia: 5, inicio: '07:30', fim: '08:15', disciplinaId: 'd3' },
+        { dia: 5, inicio: '08:15', fim: '09:00', disciplinaId: 'd1' }
+      ] },
+      { id: "t2", nome: "2ºB", ano: 2025, turno: "Tarde", horario: [
+        { dia: 1, inicio: '13:00', fim: '13:45', disciplinaId: 'd2' },
+        { dia: 1, inicio: '13:45', fim: '14:30', disciplinaId: 'd1' },
+        { dia: 2, inicio: '13:00', fim: '13:45', disciplinaId: 'd3' },
+        { dia: 3, inicio: '13:45', fim: '14:30', disciplinaId: 'd1' },
+        { dia: 4, inicio: '13:00', fim: '13:45', disciplinaId: 'd2' }
+      ] }
     ],
     disciplinas: [
       { id: "d1", nome: "Matemática" },
@@ -20,10 +37,27 @@
     matriculas: [],
     notas: [], presencas: [],
     comunicados: [{ id: "c1", autorId: "u2", titulo: "Bem-vindos!", corpo: "Aulas começam dia 05/02.", dataISO: new Date().toISOString() }],
+    anoLetivo: { inicio: '2025-02-05', fim: '2025-12-20', feriados: ['2025-04-21','2025-11-15'] },
     session: null,
     updatedAt: Date.now() // importante para resolver corrida de cache
   };
   initialData.users.forEach(u=>{ if(u.role==='aluno' && u.turmaIdSeed){ initialData.matriculas.push({ id:'m'+Math.random().toString(16).slice(2), alunoId:u.id, turmaId:u.turmaIdSeed }); delete u.turmaIdSeed; } });
+
+  // Amostras fallback caso o banco local já exista sem campos de horario (migração rápida)
+  const SAMPLE_HORARIOS = {
+    t1: [
+      { dia: 1, inicio: '07:30', fim: '08:15', disciplinaId: 'd1' },
+      { dia: 1, inicio: '08:15', fim: '09:00', disciplinaId: 'd2' },
+      { dia: 2, inicio: '07:30', fim: '08:15', disciplinaId: 'd3' },
+      { dia: 2, inicio: '08:15', fim: '09:00', disciplinaId: 'd1' },
+      { dia: 3, inicio: '07:30', fim: '08:15', disciplinaId: 'd2' }
+    ],
+    t2: [
+      { dia: 1, inicio: '13:00', fim: '13:45', disciplinaId: 'd2' },
+      { dia: 1, inicio: '13:45', fim: '14:30', disciplinaId: 'd1' },
+      { dia: 2, inicio: '13:00', fim: '13:45', disciplinaId: 'd3' }
+    ]
+  };
 
   function getDB(){
     const raw = localStorage.getItem(dbKey);
@@ -184,6 +218,10 @@
     },
     comunicados: { list(){ return getDB().comunicados.sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO)); },
       publicar(c){ const db=getDB(); c.id=uid('c'); c.dataISO=new Date().toISOString(); db.comunicados.push(c); setDB(db); return c; } },
+
+  // Horário e ano letivo - helpers para UI
+  getHorarioByTurma(turmaId){ const db=getDB(); const t = db.turmas.find(x=>x.id===turmaId); if(!t) return []; return t.horario && t.horario.length ? t.horario : (SAMPLE_HORARIOS[turmaId]||[]); },
+    getAnoLetivo(){ const db=getDB(); return db.anoLetivo || { inicio:null, fim:null, feriados:[] }; },
 
     calcMediaAlunoDisciplina(alunoId, disciplinaId){
       const db=getDB();

@@ -13,6 +13,12 @@
   <div id="hdr"></div>
   <div class="container">
 
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button id="btnNotas" class="btn">Notas</button>
+      <button id="btnAulas" class="btn ghost">Aulas</button>
+    </div>
+
+    <div id="notasPanel">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <h3 style="margin:0">Resumo Final - Notas</h3>
@@ -26,6 +32,19 @@
       <h3 style="margin:0 0 10px">Resumo Final - Frequência</h3>
       <div id="resumoFreq" class="grid cols-3"></div>
       <div class="small">Clique em uma disciplina para ver todas as presenças/faltas.</div>
+    </div>
+    </div>
+    
+    <div id="aulasPanel" style="display:none">
+    <div class="card" id="horarioAluno" style="margin-top:16px">
+      <h3 style="margin:0 0 10px">Horário das Aulas</h3>
+      <div id="horarioContent"></div>
+    </div>
+
+    <div class="card" id="calendarioAluno" style="margin-top:16px">
+      <h3 style="margin:0 0 10px">Calendário do Ano Letivo</h3>
+      <div id="calendarioContent"></div>
+    </div>
     </div>
   </div>
 
@@ -96,9 +115,9 @@
     }
     function openFreqDetalhe(did){
       const ps = App.presencas.listByAluno(user.id).filter(p=>p.disciplinaId===did);
-      const rows = ps.map(p=>`<tr><td>${p.dataISO}</td><td>${p.status}</td></tr>`).join('') || '<tr><td colspan="2">Sem registros.</td></tr>';
+      const rows = ps.map(p=>`<tr><td>${p.dataISO}</td><td>${p.horaInicio||'-'}</td><td>${p.horaFim||'-'}</td><td>${p.status}</td></tr>`).join('') || '<tr><td colspan="4">Sem registros.</td></tr>';
       modalTitle.textContent = `Frequência • ${discMap[did]}`;
-      modalContent.innerHTML = `<table class="table"><tr><th>Data</th><th>Status</th></tr>${rows}</table>`;
+      modalContent.innerHTML = `<table class="table"><tr><th>Data</th><th>Início</th><th>Término</th><th>Status</th></tr>${rows}</table>`;
       openModal();
     }
 
@@ -112,6 +131,56 @@
       });
     }
     wireClicks();
+
+    // Render horário e calendário
+    function renderHorarioECalendario(){
+      const turmaId = App.getTurmaOfAluno(user.id);
+      const horario = App.getHorarioByTurma(turmaId);
+      const dias = {1:'Segunda',2:'Terça',3:'Quarta',4:'Quinta',5:'Sexta',6:'Sábado',7:'Domingo'};
+      const horarioEl = document.getElementById('horarioContent');
+      if(!turmaId){
+        horarioEl.innerHTML = '<div class="small">Você não está matriculado em nenhuma turma.</div>';
+      } else if(!horario || !horario.length){
+        horarioEl.innerHTML = '<div class="small">Horário não disponível para sua turma.</div>';
+      } else{
+        const byDay = {};
+        horario.forEach(h=>{ (byDay[h.dia] = byDay[h.dia]||[]).push(h); });
+        const weeklyHtml = Object.keys(dias).map(k=>{
+          const items = (byDay[k]||[]).map(it=>`<div style="margin:4px 0">${it.inicio} - ${it.fim} • ${discMap[it.disciplinaId]||'-'}</div>`).join('');
+          return `<div style="margin-bottom:8px"><strong>${dias[k]}</strong>${items?('<div style="margin-top:6px">'+items+'</div>'):' <div class="small">Sem aulas</div>'}</div>`;
+        }).join('');
+
+        // aulas do dia atual
+        const today = new Date(); const wd = today.getDay()===0?7:today.getDay();
+        const aulasHoje = (byDay[wd]||[]).slice().sort((a,b)=>a.inicio.localeCompare(b.inicio));
+        let todayHtml = `<div style="margin-bottom:8px"><strong>Hoje • ${dias[wd]}</strong>`;
+        if(!aulasHoje.length){ todayHtml += '<div class="small" style="margin-top:6px">Sem aulas hoje</div>'; }
+        else{
+          const rows = aulasHoje.map(a=>`<tr><td style="width:110px">${a.inicio}</td><td style="width:110px">${a.fim}</td><td>${discMap[a.disciplinaId]||'-'}</td></tr>`).join('');
+          todayHtml += `<div style="margin-top:6px"><table class="table"><tr><th>Início</th><th>Término</th><th>Disciplina</th></tr>${rows}</table></div>`;
+        }
+        todayHtml += '</div>';
+
+        horarioEl.innerHTML = todayHtml + '<hr/>' + weeklyHtml;
+      }
+
+      const ano = App.getAnoLetivo();
+      if(!ano || !ano.inicio){ document.getElementById('calendarioContent').innerHTML = '<div class="small">Ano letivo não configurado.</div>'; }
+      else{
+        const feriados = (ano.feriados||[]).map(f=>`<li>${f}</li>`).join('');
+        document.getElementById('calendarioContent').innerHTML = `<div><strong>Início:</strong> ${ano.inicio} • <strong>Fim:</strong> ${ano.fim}</div><div style="margin-top:8px"><strong>Feriados:</strong><ul>${feriados||'<li>Nenhum</li>'}</ul></div>`;
+      }
+    }
+    // initial render
+    renderHorarioECalendario();
+
+  // Panel toggle: Notas / Aulas
+  function showNotasPanel(){ document.getElementById('notasPanel').style.display='block'; document.getElementById('aulasPanel').style.display='none'; document.getElementById('btnNotas').classList.remove('ghost'); document.getElementById('btnAulas').classList.add('ghost'); }
+  function showAulasPanel(){ renderHorarioECalendario(); document.getElementById('notasPanel').style.display='none'; document.getElementById('aulasPanel').style.display='block'; document.getElementById('btnNotas').classList.add('ghost'); document.getElementById('btnAulas').classList.remove('ghost'); }
+  document.getElementById('btnNotas').onclick = showNotasPanel;
+  document.getElementById('btnAulas').onclick = showAulasPanel;
+  // default
+  showNotasPanel();
 
     document.getElementById('btnBoletim').onclick = ()=> App.openBoletimAlunoPrint(user.id);
     window.addEventListener('pageshow', function (e) { if (e.persisted) location.reload(); });
