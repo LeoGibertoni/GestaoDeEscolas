@@ -65,11 +65,22 @@
     try{ return JSON.parse(raw); } catch(e){ localStorage.setItem(dbKey, JSON.stringify(initialData)); return JSON.parse(JSON.stringify(initialData)); }
   }
   function setDB(db){
-    db.updatedAt = Date.now(); // marca data de atualização
-    const s = JSON.stringify(db);
-    localStorage.setItem(dbKey, s);
-    idbSet(IDB_KEY, s).catch(err=>console.warn('Falha ao gravar no IDB', err));
-  }
+
+  db.updatedAt = Date.now();
+
+  const s = JSON.stringify(db);
+
+  localStorage.setItem(dbKey, s);
+
+  idbSet(IDB_KEY, s).catch(err =>
+    console.warn('Falha ao gravar no IDB', err)
+  );
+
+  // ⭐ ADICIONE SOMENTE ISSO
+  window.dispatchEvent(
+    new CustomEvent("schoolmanager_update")
+  );
+}
   function uid(p){ return p+Math.random().toString(16).slice(2); }
 
   // ===== IndexedDB adapter + boot sync =====

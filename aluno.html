@@ -1,189 +1,257 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <title>SchoolManager - Aluno</title>
-  <link rel="stylesheet" href="styles.css?v=16.1"/>
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<title>SchoolManager - Aluno</title>
+
+<link rel="stylesheet" href="styles.css?v=18"/>
+
 </head>
+
 <body>
-  <div id="hdr"></div>
-  <div class="container">
 
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <button id="btnNotas" class="btn">Notas</button>
-      <button id="btnAulas" class="btn ghost">Aulas</button>
-    </div>
+<div id="hdr"></div>
 
-    <div id="notasPanel">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <h3 style="margin:0">Resumo Final - Notas</h3>
-        <button class="btn" id="btnBoletim">Boletim (PDF)</button>
-      </div>
-      <div id="resumoNotas" class="grid cols-3" style="margin-top:10px"></div>
-      <div class="small">Clique em uma disciplina para ver todas as notas.</div>
-    </div>
+<div class="container">
 
-    <div class="card" style="margin-top:16px">
-      <h3 style="margin:0 0 10px">Resumo Final - Frequência</h3>
-      <div id="resumoFreq" class="grid cols-3"></div>
-      <div class="small">Clique em uma disciplina para ver todas as presenças/faltas.</div>
-    </div>
-    </div>
-    
-    <div id="aulasPanel" style="display:none">
-    <div class="card" id="horarioAluno" style="margin-top:16px">
-      <h3 style="margin:0 0 10px">Horário das Aulas</h3>
-      <div id="horarioContent"></div>
-    </div>
+<div style="display:flex;gap:8px;margin-bottom:12px">
+<button id="btnNotas" class="btn">Notas</button>
+<button id="btnAulas" class="btn ghost">Aulas</button>
+</div>
 
-    <div class="card" id="calendarioAluno" style="margin-top:16px">
-      <h3 style="margin:0 0 10px">Calendário do Ano Letivo</h3>
-      <div id="calendarioContent"></div>
-    </div>
-    </div>
-  </div>
+<!-- ================= NOTAS ================= -->
+<div id="notasPanel">
 
-  <div class="modal-backdrop" id="modalBk">
-    <div class="modal">
-      <header>
-        <h3 id="modalTitle" style="margin:0"></h3>
-        <button class="close" id="modalClose">Fechar</button>
-      </header>
-      <div class="content" id="modalContent"></div>
-    </div>
-  </div>
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<h3>Resumo Final - Notas</h3>
+<button class="btn" id="btnBoletim">Boletim (PDF)</button>
+</div>
 
-  <script src="app.js?v=16.1"></script>
-  <script>
-    App.guard(['aluno']); App.mountHeader();
-    const user = App.currentUser();
-    const discList = App.disciplinas.list();
-    const discMap = Object.fromEntries(discList.map(d=>[d.id,d.nome]));
+<div id="resumoNotas" class="grid cols-3"></div>
+</div>
 
-    function statusIcon(klass){ if(klass==='ok') return '✓'; if(klass==='warn') return '!'; return '✕'; }
-    function cardKlass(klass){ return klass==='ok'?'status-ok':(klass==='warn'?'status-warn':'status-bad'); }
+<div class="card" style="margin-top:16px">
+<h3>Resumo Final - Frequência</h3>
+<div id="resumoFreq" class="grid cols-3"></div>
+</div>
 
-    function cardNota(did){
-      const media = App.calcMediaAlunoDisciplina(user.id, did);
-      const sit = App.situacaoAlunoDisciplina(user.id, did);
-      const klass = cardKlass(sit.klass);
-      return `<div class="card disc ${klass}" data-type="notas" data-did="${did}" style="cursor:pointer">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <strong>${discMap[did]}</strong>
-          <span class="status ${sit.klass}"><span class="icon">${statusIcon(sit.klass)}</span>${sit.status}</span>
-        </div>
-        <div class="small">Média Final: ${media??'-'}</div>
-      </div>`;
-    }
+</div>
 
-    function cardFreq(did){
-      const freq = App.calcFreqAlunoDisciplina(user.id, did);
-      const sit = App.situacaoAlunoDisciplina(user.id, did);
-      const klass = cardKlass(sit.klass);
-      return `<div class="card disc ${klass}" data-type="freq" data-did="${did}" style="cursor:pointer">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <strong>${discMap[did]}</strong>
-          <span class="status ${sit.klass}"><span class="icon">${statusIcon(sit.klass)}</span>${sit.status}</span>
-        </div>
-        <div class="progress"><div style="width:${freq}%"></div></div>
-        <div class="small" style="margin-top:6px">Frequência: ${freq}%</div>
-      </div>`;
-    }
+<!-- ================= AULAS ================= -->
+<div id="aulasPanel" style="display:none">
 
-    document.getElementById('resumoNotas').innerHTML = discList.map(d=>cardNota(d.id)).join('') || '<div class="alert">Sem disciplinas.</div>';
-    document.getElementById('resumoFreq').innerHTML = discList.map(d=>cardFreq(d.id)).join('') || '<div class="alert">Sem disciplinas.</div>';
+<div class="card">
+<h3>Horário das Aulas</h3>
+<div id="horarioContent"></div>
+</div>
 
-    const modalBk = document.getElementById('modalBk');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalContent = document.getElementById('modalContent');
-    function openModal(){ modalBk.style.display='flex'; }
-    function closeModal(){ modalBk.style.display='none'; modalTitle.textContent=''; modalContent.innerHTML=''; }
-    document.getElementById('modalClose').onclick = closeModal;
-    modalBk.addEventListener('click', (e)=>{ if(e.target===modalBk) closeModal(); });
+<div class="card" style="margin-top:16px">
+<h3>Calendário do Ano Letivo 2026</h3>
+<div id="calendarioContent"></div>
+</div>
 
-    function openNotasDetalhe(did){
-      const ns = App.notas.listByAluno(user.id).filter(n=>n.disciplinaId===did);
-      modalTitle.textContent = `Notas • ${discMap[did]}`;
-      const rows = ns.map(n=>`<tr><td>${n.avaliacao}</td><td style="text-align:right">${n.valor}</td></tr>`).join('') || '<tr><td colspan="2">Sem notas.</td></tr>';
-      modalContent.innerHTML = `<table class="table"><tr><th>Avaliação</th><th>Nota</th></tr>${rows}</table>`;
-      openModal();
-    }
-    function openFreqDetalhe(did){
-      const ps = App.presencas.listByAluno(user.id).filter(p=>p.disciplinaId===did);
-      const rows = ps.map(p=>`<tr><td>${p.dataISO}</td><td>${p.horaInicio||'-'}</td><td>${p.horaFim||'-'}</td><td>${p.status}</td></tr>`).join('') || '<tr><td colspan="4">Sem registros.</td></tr>';
-      modalTitle.textContent = `Frequência • ${discMap[did]}`;
-      modalContent.innerHTML = `<table class="table"><tr><th>Data</th><th>Início</th><th>Término</th><th>Status</th></tr>${rows}</table>`;
-      openModal();
-    }
+</div>
+</div>
 
-    function wireClicks(){
-      document.querySelectorAll('.card.disc').forEach(c=>{
-        c.addEventListener('click', ()=>{
-          const did = c.getAttribute('data-did');
-          const t = c.getAttribute('data-type');
-          if(t==='notas') openNotasDetalhe(did); else openFreqDetalhe(did);
-        });
-      });
-    }
-    wireClicks();
+<script src="app.js?v=18"></script>
 
-    // Render horário e calendário
-    function renderHorarioECalendario(){
-      const turmaId = App.getTurmaOfAluno(user.id);
-      const horario = App.getHorarioByTurma(turmaId);
-      const dias = {1:'Segunda',2:'Terça',3:'Quarta',4:'Quinta',5:'Sexta',6:'Sábado',7:'Domingo'};
-      const horarioEl = document.getElementById('horarioContent');
-      if(!turmaId){
-        horarioEl.innerHTML = '<div class="small">Você não está matriculado em nenhuma turma.</div>';
-      } else if(!horario || !horario.length){
-        horarioEl.innerHTML = '<div class="small">Horário não disponível para sua turma.</div>';
-      } else{
-        const byDay = {};
-        horario.forEach(h=>{ (byDay[h.dia] = byDay[h.dia]||[]).push(h); });
-        const weeklyHtml = Object.keys(dias).map(k=>{
-          const items = (byDay[k]||[]).map(it=>`<div style="margin:4px 0">${it.inicio} - ${it.fim} • ${discMap[it.disciplinaId]||'-'}</div>`).join('');
-          return `<div style="margin-bottom:8px"><strong>${dias[k]}</strong>${items?('<div style="margin-top:6px">'+items+'</div>'):' <div class="small">Sem aulas</div>'}</div>`;
-        }).join('');
+<script>
 
-        // aulas do dia atual
-        const today = new Date(); const wd = today.getDay()===0?7:today.getDay();
-        const aulasHoje = (byDay[wd]||[]).slice().sort((a,b)=>a.inicio.localeCompare(b.inicio));
-        let todayHtml = `<div style="margin-bottom:8px"><strong>Hoje • ${dias[wd]}</strong>`;
-        if(!aulasHoje.length){ todayHtml += '<div class="small" style="margin-top:6px">Sem aulas hoje</div>'; }
-        else{
-          const rows = aulasHoje.map(a=>`<tr><td style="width:110px">${a.inicio}</td><td style="width:110px">${a.fim}</td><td>${discMap[a.disciplinaId]||'-'}</td></tr>`).join('');
-          todayHtml += `<div style="margin-top:6px"><table class="table"><tr><th>Início</th><th>Término</th><th>Disciplina</th></tr>${rows}</table></div>`;
-        }
-        todayHtml += '</div>';
+App.guard(['aluno']);
+App.mountHeader();
 
-        horarioEl.innerHTML = todayHtml + '<hr/>' + weeklyHtml;
-      }
+const user = App.currentUser();
+const discList = App.disciplinas.list();
+const discMap = Object.fromEntries(discList.map(d=>[d.id,d.nome]));
 
-      const ano = App.getAnoLetivo();
-      if(!ano || !ano.inicio){ document.getElementById('calendarioContent').innerHTML = '<div class="small">Ano letivo não configurado.</div>'; }
-      else{
-        const feriados = (ano.feriados||[]).map(f=>`<li>${f}</li>`).join('');
-        document.getElementById('calendarioContent').innerHTML = `<div><strong>Início:</strong> ${ano.inicio} • <strong>Fim:</strong> ${ano.fim}</div><div style="margin-top:8px"><strong>Feriados:</strong><ul>${feriados||'<li>Nenhum</li>'}</ul></div>`;
-      }
-    }
-    // initial render
-    renderHorarioECalendario();
+// ================= FORMATADOR =================
+function formatarDataBR(dataISO){
+const [ano,mes,dia]=dataISO.split("-");
+return `${dia}/${mes}/${ano}`;
+}
 
-  // Panel toggle: Notas / Aulas
-  function showNotasPanel(){ document.getElementById('notasPanel').style.display='block'; document.getElementById('aulasPanel').style.display='none'; document.getElementById('btnNotas').classList.remove('ghost'); document.getElementById('btnAulas').classList.add('ghost'); }
-  function showAulasPanel(){ renderHorarioECalendario(); document.getElementById('notasPanel').style.display='none'; document.getElementById('aulasPanel').style.display='block'; document.getElementById('btnNotas').classList.add('ghost'); document.getElementById('btnAulas').classList.remove('ghost'); }
-  document.getElementById('btnNotas').onclick = showNotasPanel;
-  document.getElementById('btnAulas').onclick = showAulasPanel;
-  // default
-  showNotasPanel();
+// ================= RESUMOS =================
+function cardNota(did){
+const media=App.calcMediaAlunoDisciplina(user.id,did);
+return `<div class="card">${discMap[did]}<div class="small">Média: ${media??'-'}</div></div>`;
+}
 
-    document.getElementById('btnBoletim').onclick = ()=> App.openBoletimAlunoPrint(user.id);
-    window.addEventListener('pageshow', function (e) { if (e.persisted) location.reload(); });
-  </script>
+function cardFreq(did){
+const freq=App.calcFreqAlunoDisciplina(user.id,did);
+return `<div class="card">${discMap[did]}<div class="small">Frequência: ${freq}%</div></div>`;
+}
+
+document.getElementById("resumoNotas").innerHTML=
+discList.map(d=>cardNota(d.id)).join("");
+
+document.getElementById("resumoFreq").innerHTML=
+discList.map(d=>cardFreq(d.id)).join("");
+
+
+// ================= HORÁRIO =================
+function renderHorario(){
+
+const turmaId=App.getTurmaOfAluno(user.id);
+const horario=App.getHorarioByTurma(turmaId);
+
+const dias={
+1:"Segunda-feira",
+2:"Terça-feira",
+3:"Quarta-feira",
+4:"Quinta-feira",
+5:"Sexta-feira"
+};
+
+if(!horario || !horario.length){
+horarioContent.innerHTML="<div class='small'>Horário não disponível.</div>";
+return;
+}
+
+const byDay={};
+
+horario.forEach(h=>{
+(byDay[h.dia]=byDay[h.dia]||[]).push(h);
+});
+
+horarioContent.innerHTML=`
+<table class="table">
+<thead>
+<tr>
+<th>Dia</th>
+<th>Início</th>
+<th>Término</th>
+<th>Disciplina</th>
+</tr>
+</thead>
+
+<tbody>
+${Object.keys(dias).map(k=>{
+
+const aulas=(byDay[k]||[])
+.sort((a,b)=>a.inicio.localeCompare(b.inicio));
+
+if(!aulas.length){
+return `<tr>
+<td>${dias[k]}</td>
+<td colspan="3">Sem aulas</td>
+</tr>`;
+}
+
+return aulas.map(a=>`
+<tr>
+<td>${dias[k]}</td>
+<td>${a.inicio}</td>
+<td>${a.fim}</td>
+<td>${discMap[a.disciplinaId]||"-"}</td>
+</tr>`).join("");
+
+}).join("")}
+</tbody>
+</table>`;
+}
+
+
+// ================= CALENDÁRIO =================
+function renderCalendario(){
+
+const inicio="2026-02-05";
+const fim="2026-12-20";
+
+const feriados=[
+["2026-01-01","Confraternização Universal"],
+["2026-02-16","Carnaval"],
+["2026-02-17","Carnaval"],
+["2026-04-03","Sexta-feira Santa"],
+["2026-04-21","Tiradentes"],
+["2026-05-01","Dia do Trabalhador"],
+["2026-06-04","Corpus Christi"],
+["2026-09-07","Independência do Brasil"],
+["2026-10-12","Nossa Senhora Aparecida"],
+["2026-11-02","Finados"],
+["2026-11-15","Proclamação da República"],
+["2026-12-25","Natal"]
+];
+
+const recessos=[
+["Recesso Escolar de Janeiro","2026-01-02","2026-02-04"],
+["Recesso Escolar de Julho","2026-07-10","2026-07-24"],
+["Recesso Escolar de Dezembro","2026-12-21","2026-12-31"]
+];
+
+calendarioContent.innerHTML=`
+
+<div>
+<strong>Início:</strong> ${formatarDataBR(inicio)}
+•
+<strong>Fim:</strong> ${formatarDataBR(fim)}
+</div>
+
+<div style="margin-top:12px">
+<strong>📅 Feriados Nacionais:</strong>
+<ul>
+${feriados.map(f=>
+`<li>${formatarDataBR(f[0])} — ${f[1]}</li>`
+).join("")}
+</ul>
+</div>
+
+<div style="margin-top:12px">
+<strong>🏖️ Períodos de Recesso Escolar:</strong>
+<ul>
+${recessos.map(r=>
+`<li>${r[0]}: ${formatarDataBR(r[1])} a ${formatarDataBR(r[2])}</li>`
+).join("")}
+</ul>
+</div>
+
+<div style="margin-top:12px">
+<button class="btn" id="btnCalendarioPDF">
+📅 Abrir Calendário Letivo 2026
+</button>
+</div>
+`;
+}
+
+
+// ================= ABRIR PDF =================
+document.addEventListener("click",e=>{
+if(e.target.id==="btnCalendarioPDF"){
+
+window.open("./CalendarioLetivo2026.pdf","_blank");
+
+}
+});
+
+
+// ================= TROCA DE PAINEL =================
+function showNotas(){
+notasPanel.style.display="block";
+aulasPanel.style.display="none";
+}
+
+function showAulas(){
+renderHorario();
+renderCalendario();
+notasPanel.style.display="none";
+aulasPanel.style.display="block";
+}
+
+btnNotas.onclick=showNotas;
+btnAulas.onclick=showAulas;
+
+showNotas();
+
+btnBoletim.onclick=()=>App.openBoletimAlunoPrint(user.id);
+
+</script>
+
 </body>
 </html>
